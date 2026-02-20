@@ -25,7 +25,7 @@ from datetime import datetime
 from pathlib import Path
 
 
-LOG_FILE = "/tmp/bash_classifier_log.log"
+LOG_FILE = "/tmp/claude-bash-classifier.log"
 PROMPT_FILE = Path(__file__).parent / "classify_bash_prompt.md"
 
 

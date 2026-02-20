@@ -109,7 +109,7 @@ For the direct API, just set `ANTHROPIC_API_KEY` in your environment — no extr
 Watch decisions in real time:
 
 ```sh
-tail -f /tmp/claude_hook.log
+tail -f /tmp/claude-bash-classifier.log
 ```
 
 Each entry shows the timestamp, decision, command (truncated to 120 chars), and raw model output.

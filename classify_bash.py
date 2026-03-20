@@ -16,17 +16,27 @@ ones fall through to the normal permission system for the human to decide.
 Uses tool use (structured output) so the model is forced to return a
 valid enum value rather than free text — no accidental substring matches.
 
-Logs all decisions to /tmp/bash_classifier_log.log — tail -f that file to debug.
+Logs all decisions to /tmp/claude-bash-classifier.log — tail -f that file to debug.
+Rotates at 200 KB, keeping 1 backup (~400 KB max on disk).
 """
 import json
 import sys
 import os
+import logging
+import logging.handlers
 from datetime import datetime
 from pathlib import Path
 
 
 LOG_FILE = "/tmp/claude-bash-classifier.log"
 PROMPT_FILE = Path(__file__).parent / "classify_bash_prompt.md"
+
+# Rotate at 200 KB, keep 1 backup — ~400 KB max on disk
+_handler = logging.handlers.RotatingFileHandler(LOG_FILE, maxBytes=200_000, backupCount=1)
+_handler.setFormatter(logging.Formatter("%(message)s"))
+_log = logging.getLogger("bash_classifier")
+_log.addHandler(_handler)
+_log.setLevel(logging.DEBUG)
 
 
 def _build_tool() -> dict:
@@ -52,13 +62,12 @@ CLASSIFY_TOOL = _build_tool()
 
 def log(command: str, decision: str, raw_response: str | None = None, error: str | None = None):
     timestamp = datetime.now().strftime("%H:%M:%S")
-    with open(LOG_FILE, "a") as f:
-        f.write(f"[{timestamp}] {decision}\n")
-        f.write(f"  cmd: {command[:120]}\n")
-        if raw_response is not None:
-            f.write(f"  model: {raw_response!r}\n")
-        if error is not None:
-            f.write(f"  error: {error}\n")
+    lines = [f"[{timestamp}] {decision}", f"  cmd: {command[:120]}"]
+    if raw_response is not None:
+        lines.append(f"  model: {raw_response!r}")
+    if error is not None:
+        lines.append(f"  error: {error}")
+    _log.info("\n".join(lines))
 
 
 def main():
@@ -66,8 +75,7 @@ def main():
     command = data.get("tool_input", {}).get("command", "")
 
     timestamp = datetime.now().strftime("%H:%M:%S")
-    with open(LOG_FILE, "a") as f:
-        f.write(f"[{timestamp}] CALLED: {command[:120]}\n")
+    _log.info(f"[{timestamp}] CALLED: {command[:120]}")
 
     try:
         import anthropic
